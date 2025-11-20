@@ -40,24 +40,32 @@ router.get("/", (req, res) => {
  *         description: Erro interno ao cadastrar veterinário.
  */
 
-router.post("/cadastrarVet", async (req, res) => {
+router.post("/veterinario", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { nome, crmv, data_nascimento, endereco, cidade, uf, telefone, email } = req.body;
 
-      const {nome, crmv, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email} = req.body;
+    if (!nome || !crmv) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const r = await conexao.query("INSERT INTO veterinario (nome, crmv, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *", [nome, crmv, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email]);
+    if (crmv.length > 8) {
+      return res.status(400).json({ msg: "O CRMV deve ter até 8 caracteres!" });
+    }
 
-      res.json(r.rows[0]);
+    const uniqueCrmv = await db.query("SELECT COUNT(*) FROM veterinario WHERE crmv = $1", [crmv]);
+    const quantidade = Number(uniqueCrmv.rows[0].count);
 
-    });
+    if (quantidade > 0) {
+      return res.status(400).json({ msg: "CRMV duplicado!" });
+    }
 
-    return res.status(500).json({ msg: "Erro de operação" });
+    const r = await db.query("INSERT INTO veterinario (nome, crmv, data_nascimento, endereco, cidade, uf, telefone, email) values($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *", [nome, crmv, data_nascimento, endereco, cidade, uf, telefone, email]);
+
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
-
 });
 
 
@@ -94,20 +102,29 @@ router.post("/cadastrarVet", async (req, res) => {
  *         description: Erro interno ao cadastrar tutor.
  */
 
-router.post("/cadastrarTutor", async (req, res) => {
+router.post("/tutor", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { nome, cpf, data_nascimento, endereco, cidade, uf, telefone, email } = req.body;
 
-      const {nome, cpf, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email} = req.body;
+    if (!nome || !cpf) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const r = await conexao.query("INSERT INTO tutor (nome, cpf, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *", [nome, cpf, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email]);
+    if (cpf.length > 15) {
+      return res.status(400).json({ msg: "O CPF deve ter até 15 caracteres!" });
+    }
 
-      res.json(r.rows[0]);
+    const uniqueCpf = await db.query("SELECT COUNT(*) FROM tutor WHERE cpf = $1", [cpf]);
+    const quantidade = Number(uniqueCpf.rows[0].count);
 
-    });
+    if (quantidade > 0) {
+      return res.status(400).json({ msg: "CPF duplicado!" });
+    }
 
-    return res.status(500).json({ msg: "Erro de operação" });
+    const r = await db.query("INSERT INTO tutor (nome, cpf, data_nascimento, endereco, cidade, uf, telefone, email) values($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *", [nome, cpf, data_nascimento, endereco, cidade, uf, telefone, email]);
+
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -141,27 +158,25 @@ router.post("/cadastrarTutor", async (req, res) => {
  *         description: Erro interno ou tutor inexistente.
  */
 
-router.post("/cadastrarPet", async (req, res) => {
+router.post("/pet", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { nome, data_nascimento, especie, raca, id_tutor } = req.body;
 
-      const {nome, data_nascimento, especie, raca, id_tutor} = req.body;
+    if (!data_nascimento || !especie || !id_tutor) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const s = await db.query("SELECT COUNT(*) from tutor where id = $1", [id_tutor]);  
-      const quantidade = Number(s.rows[0].count);
+    const existeTutor = await db.query("SELECT COUNT(*) from tutor where id = $1", [id_tutor]);
+    const quantidade = Number(existeTutor.rows[0].count);
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse tutor não existe... :('});
-      }
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse tutor não existe... :(' });
+    }
 
-      const r = await conexao.query("INSERT INTO pet (nome, data_nascimento, especie, raca, id_tutor) values($1, $2, $3, $4, $5) RETURNING *", [nome, data_nascimento, especie, raca, id_tutor]);
+    const r = await db.query("INSERT INTO pet (nome, data_nascimento, especie, raca, id_tutor) values($1, $2, $3, $4, $5) RETURNING *", [nome, data_nascimento, especie, raca, id_tutor]);
 
-      res.json(r.rows[0]);
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -194,41 +209,39 @@ router.post("/cadastrarPet", async (req, res) => {
  *         description: Erros interno, veterinário inexistente, pet inexistente  ou conflito de horário.
  */
 
-router.post("/cadastrarConsulta", async (req, res) => {
+router.post("/consulta", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { id_vet, id_pet, data_hora, valor } = req.body;
 
-      const {id_vet, id_pet, data_hora, valor} = req.body;
+    if (!id_vet || !id_pet || !data_hora) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const s = await db.query("SELECT COUNT(*) from pet where id = $1", [id_pet]);  
-      const quantidade = Number(s.rows[0].count);
+    const existePet = await db.query("SELECT COUNT(*) from pet where id = $1", [id_pet]);
+    const existePetQtd = Number(existePet.rows[0].count);
 
-      const j = await db.query("SELECT COUNT(*) from veterinario where id = $1", [id_vet]);  
-      const quant = Number(j.rows[0].count);
+    const existeVet = await db.query("SELECT COUNT(*) from veterinario where id = $1", [id_vet]);
+    const existeVetQtd = Number(existeVet.rows[0].count);
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse pet não existe... :('});
-      }
+    if (existePetQtd == 0) {
+      return res.status(400).json({ msg: 'Esse pet não existe... :(' });
+    }
 
-      if(quant == 0){
-        return res.status(500).json({msg: 'Esse veterinário não existe... :('});
-      }
+    if (existeVetQtd == 0) {
+      return res.status(400).json({ msg: 'Esse veterinário não existe... :(' });
+    }
 
-      const k = await db.query("SELECT COUNT(*) from consulta where id = $1 and data_hora = $2", [id_vet, data_hora]);  
-      const cons = Number(s.rows[0].count);
+    const existeConsulta = await db.query("SELECT COUNT(*) from consulta where id_vet = $1 and data_hora = $2", [id_vet, data_hora]);
+    const existeConsultaQtd = Number(existeConsulta.rows[0].count);
 
-      if(cons != 0){
-        return res.status(500).json({msg: 'Já existe uma consulta marcada para esse dia/horário...:('});
-      }
+    if (existeConsultaQtd != 0) {
+      return res.status(400).json({ msg: 'Já existe uma consulta marcada para esse dia/horário...:(' });
+    }
 
-      const r = await conexao.query("INSERT INTO consulta (id_vet, id_pet, data_hora, valor) values($1, $2, $3, $4) RETURNING *", [id_vet, id_pet, data_hora, valor]);
+    const r = await db.query("INSERT INTO consulta (id_vet, id_pet, data_hora, valor) values($1, $2, $3, $4) RETURNING *", [id_vet, id_pet, data_hora, valor]);
 
-      res.json(r.rows[0]);
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -249,19 +262,12 @@ router.post("/cadastrarConsulta", async (req, res) => {
  *         description: Erro interno ao buscar veterinários.
  */
 
-router.get("/exibirVeterinarios", async (req, res) => {
+router.get("/veterinario", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const r = await db.query("SELECT * from veterinario");
 
-      const r = await db.query("SELECT * from veterinario");
-
-      res.json(r.rows);
-        
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -283,23 +289,15 @@ router.get("/exibirVeterinarios", async (req, res) => {
  *         description: Erro interno ao buscar tutores.
  */
 
-router.get("/exibirTutores", async (req, res) => {
+router.get("/tutor", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const r = await db.query("SELECT * from tutor");
 
-      const r = await db.query("SELECT * from tutor");
-
-      res.json(r.rows);
-        
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
-
 });
 
 
@@ -317,19 +315,12 @@ router.get("/exibirTutores", async (req, res) => {
  *         description: Erro interno ao buscar pets.
  */
 
-router.get("/exibirPets", async (req, res) => {
+router.get("/pet", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const r = await db.query("SELECT * from pet");
 
-      const r = await db.query("SELECT * from pet");
-
-      res.json(r.rows);
-        
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -351,17 +342,12 @@ router.get("/exibirPets", async (req, res) => {
  *         description: Erro interno ao buscar consultas.
  */
 
-router.get("/exibirConsultas", async (req, res) => {
+router.get("/consulta", async (req, res) => {
 
   try {
-    const result = await db.transaction(async (conexao) => {
 
-      const r = await db.query("SELECT c.id, v.crmv, v.nome as nome_vet, t.cpf, t.nome as nome_tutor, p.nome as nome_pet, c.data_hora, c.valor from consulta as c join veterinario as v on c.id_vet = v.id join pet as p on c.id_pet = p.id join tutor as t on p.id_tutor = t.id");
-      res.json(r.rows);
-      
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    const r = await db.query("SELECT c.id, v.crmv, v.nome as nome_vet, t.cpf, t.nome as nome_tutor, p.nome as nome_pet, c.data_hora, c.valor from consulta as c join veterinario as v on c.id_vet = v.id join pet as p on c.id_pet = p.id join tutor as t on p.id_tutor = t.id");
+    res.json(r.rows);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -387,33 +373,29 @@ router.get("/exibirConsultas", async (req, res) => {
  *         description: Veterinário não encontrado ou erro interno.
  */
 
-router.delete("/deletarVeterinario/:id", async (req, res) => {
+router.delete("/veterinario/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
 
-      const s = await db.query("SELECT COUNT(*) from veterinario where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    const s = await db.query("SELECT COUNT(*) from veterinario where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse veterinario não existe... :('});
-      }
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse veterinario não existe... :(' });
+    }
 
-      const c = await db.query("SELECT COUNT(*) from consulta where id = $1", [id]);  
-      const quant = Number(c.rows[0].count);
+    const c = await db.query("SELECT COUNT(*) from consulta where id_vet = $1", [id]);
+    const quant = Number(c.rows[0].count);
 
-      if(quant != 0){
-        await db.query("DELETE FROM consulta where id_vet = $1", [id]);
-      }
+    if (quant != 0) {
+      await db.query("DELETE FROM consulta where id_vet = $1", [id]);
+    }
 
-      const r = await db.query("DELETE FROM veterinario where id = $1 RETURNING *", [id]);
-      
-      res.json(r.rows[0]);
-    });
+    const r = await db.query("DELETE FROM veterinario where id = $1 RETURNING *", [id]);
 
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -440,48 +422,43 @@ router.delete("/deletarVeterinario/:id", async (req, res) => {
  *         description: Tutor não encontrado ou erro interno.
  */
 
-router.delete("/deletarTutor/:id", async (req, res) => {
+router.delete("/tutor/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
 
-      const s = await db.query("SELECT COUNT(*) from tutor where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    const s = await db.query("SELECT COUNT(*) from tutor where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse tutor não existe... :('});
-      }
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse tutor não existe... :(' });
+    }
 
-      const c = await db.query("SELECT COUNT(*) from pet where id_tutor = $1", [id]);  
-      const quant = Number(c.rows[0].count);
+    const c = await db.query("SELECT COUNT(*) from pet where id_tutor = $1", [id]);
+    const quant = Number(c.rows[0].count);
 
-      if(quant != 0){
-        const id_pet = await db.query("SELECT id from pet where id_tutor = $1", [id]); 
+    if (quant != 0) {
+      const id_pet = await db.query("SELECT id from pet where id_tutor = $1", [id]);
 
-        for(let i = 0; i < id_pet.rows.length; i++){
-          const id_pet_un = id_pet.rows[i].id;
+      for (let i = 0; i < id_pet.rows.length; i++) {
+        const id_pet_un = id_pet.rows[i].id;
 
-          const v = await db.query("SELECT COUNT(*) from consulta where id_pet = $1", [id_pet_un]);  
-          const qt = Number(c.rows[0].count);
+        const v = await db.query("SELECT COUNT(*) from consulta where id_pet = $1", [id_pet_un]);
+        const qt = Number(c.rows[0].count);
 
-          if(qt != 0){
-            await db.query("DELETE FROM consulta where id_pet = $1", [id_pet_un]);
-          }
-
+        if (qt != 0) {
+          await db.query("DELETE FROM consulta where id_pet = $1", [id_pet_un]);
         }
 
-        await db.query("DELETE FROM pet where id_tutor = $1", [id]);
-
       }
 
-      const r = await db.query("DELETE FROM tutor where id = $1 RETURNING *", [id]);
-      res.json(r.rows[0]);
+      await db.query("DELETE FROM pet where id_tutor = $1", [id]);
 
-    });
+    }
 
-    return res.status(500).json({ msg: "Erro de operação" });
+    const r = await db.query("DELETE FROM tutor where id = $1 RETURNING *", [id]);
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -508,33 +485,28 @@ router.delete("/deletarTutor/:id", async (req, res) => {
  *         description: Pet não encontrado ou erro interno.
  */
 
-router.delete("/deletarPet/:id", async (req, res) => {
+router.delete("/pet/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const s = await db.query("SELECT COUNT(*) from pet where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      const s = await db.query("SELECT COUNT(*) from pet where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse pet não existe... :(' });
+    }
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse pet não existe... :('});
-      }
+    const c = await db.query("SELECT COUNT(*) from consulta where id_pet = $1", [id]);
+    const quant = Number(c.rows[0].count);
 
-      const c = await db.query("SELECT COUNT(*) from consulta where id_pet = $1", [id]);  
-      const quant = Number(c.rows[0].count);
+    if (quant != 0) {
+      await db.query("DELETE FROM consulta where id_pet = $1", [id]);
+    }
 
-      if(quant != 0){
-        await db.query("DELETE FROM consulta where id_pet = $1", [id]);
-      }
+    const r = await db.query("DELETE FROM pet where id = $1 RETURNING *", [id]);
 
-      const r = await db.query("DELETE FROM pet where id = $1 RETURNING *", [id]);
-      
-      res.json(r.rows[0]);
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -562,27 +534,21 @@ router.delete("/deletarPet/:id", async (req, res) => {
  *         description: Consulta não encontrada ou erro interno.
  */
 
-router.delete("/deletarConsulta/:id", async (req, res) => {
+router.delete("/consulta/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const s = await db.query("SELECT COUNT(*) from consulta where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      const s = await db.query("SELECT COUNT(*) from consulta where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Essa consulta não existe... :(' });
+    }
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Essa consulta não existe... :('});
-      }
+    const r = await db.query("DELETE FROM consulta where id = $1 RETURNING *", [id]);
 
-      const r = await db.query("DELETE FROM consulta where id = $1 RETURNING *", [id]);
-      
-      res.json(r.rows[0]);
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -628,29 +594,34 @@ router.delete("/deletarConsulta/:id", async (req, res) => {
  */
 
 
-router.put("/atualizarVeterinario/:id", async (req, res) => {
+router.put("/veterinario/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { nome, crmv, data_nascimento, endereco, cidade, uf, telefone, email } = req.body;
 
-      const {nome, crmv, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email} = req.body;
+    const s = await db.query("SELECT COUNT(*) from veterinario where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      const s = await db.query("SELECT COUNT(*) from veterinario where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse veterinario não existe... :(' });
+    }
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse veterinario não existe... :('});
-      }
+    if (!nome || !crmv) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const r = await conexao.query("UPDATE VETERINARIO SET nome = $1, crmv = $2, data_nascimento = $3, logradouro = $4, numero = $5, bairro = $6, cep = $7, cidade = $8, uf = $9, telefone = $10, email = $11 WHERE id = $12 RETURNING *", [nome, crmv, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email, id]);
+    const uniqueCrmv = await db.query("SELECT COUNT(*) FROM veterinario WHERE crmv = $1 and id != $2", [crmv, id]);
+    const uniqueCrmvQtd = Number(uniqueCrmv.rows[0].count);
 
-      res.json(r.rows[0]);
+    if (uniqueCrmvQtd > 0) {
+      return res.status(400).json({ msg: "CRMV duplicado!" });
+    }
 
-    });
+    const r = await db.query("UPDATE VETERINARIO SET nome = $1, crmv = $2, data_nascimento = $3, endereco = $4, cidade = $5, uf = $6, telefone = $7, email = $8 WHERE id = $9 RETURNING *", [nome, crmv, data_nascimento, endereco, cidade, uf, telefone, email, id]);
 
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -695,29 +666,34 @@ router.put("/atualizarVeterinario/:id", async (req, res) => {
  *         description: Tutor não encontrado ou erro interno.
  */
 
-router.put("/atualizarTutor/:id", async (req, res) => {
+router.put("/tutor/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { nome, cpf, data_nascimento, endereco, cidade, uf, telefone, email } = req.body;
 
-      const {nome, cpf, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email} = req.body;
+    const s = await db.query("SELECT COUNT(*) from tutor where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      const s = await db.query("SELECT COUNT(*) from tutor where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse tutor não existe... :(' });
+    }
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse tutor não existe... :('});
-      }
+    if (!nome || !cpf) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const r = await conexao.query("UPDATE TUTOR SET nome = $1, cpf = $2, data_nascimento = $3, logradouro = $4, numero = $5, bairro = $6, cep = $7, cidade = $8, uf = $9, telefone = $10, email = $11 WHERE id = $12 RETURNING *", [nome, cpf, data_nascimento, logradouro, numero, bairro, cep, cidade, uf, telefone, email, id]);
+    const uniqueCpf = await db.query("SELECT COUNT(*) FROM tutor WHERE cpf = $1 and id != $2", [cpf, id]);
+    const uniqueCpfQtd = Number(uniqueCpf.rows[0].count);
 
-      res.json(r.rows[0]);
+    if (uniqueCpfQtd > 0) {
+      return res.status(400).json({ msg: "CPF duplicado!" });
+    }
 
-    });
+    const r = await db.query("UPDATE TUTOR SET nome = $1, cpf = $2, data_nascimento = $3, endereco = $4, cidade = $5, uf = $6, telefone = $7, email = $8 WHERE id = $9 RETURNING *", [nome, cpf, data_nascimento, endereco, cidade, uf, telefone, email, id]);
 
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -757,29 +733,27 @@ router.put("/atualizarTutor/:id", async (req, res) => {
  */
 
 
-router.put("/atualizarPet/:id", async (req, res) => {
+router.put("/pet/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { nome, data_nascimento, especie, raca } = req.body;
 
-      const {nome, data_nascimento, especie, raca} = req.body;
+    const s = await db.query("SELECT COUNT(*) from pet where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      const s = await db.query("SELECT COUNT(*) from pet where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Esse pet não existe... :(' });
+    }
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Esse pet não existe... :('});
-      }
+    if (!data_nascimento || !especie) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const r = await conexao.query("UPDATE PET SET nome = $1, data_nascimento = $2, especie = $3, raca = $4 WHERE id = $5 RETURNING *", [nome, data_nascimento, especie, raca, id]);
+    const r = await db.query("UPDATE PET SET nome = $1, data_nascimento = $2, especie = $3, raca = $4 WHERE id = $5 RETURNING *", [nome, data_nascimento, especie, raca, id]);
 
-      res.json(r.rows[0]);
-
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -817,36 +791,37 @@ router.put("/atualizarPet/:id", async (req, res) => {
  */
 
 
-router.put("/atualizarConsulta/:id", async (req, res) => {
+router.put("/consulta/:id", async (req, res) => {
 
   let id = req.params.id;
 
   try {
-    const result = await db.transaction(async (conexao) => {
+    const { data_hora, valor } = req.body;
 
-      const {data_hora, valor} = req.body;
+    const s = await db.query("SELECT COUNT(*) from consulta where id = $1", [id]);
+    const quantidade = Number(s.rows[0].count);
 
-      const s = await db.query("SELECT COUNT(*) from consulta where id = $1", [id]);  
-      const quantidade = Number(s.rows[0].count);
+    if (quantidade == 0) {
+      return res.status(400).json({ msg: 'Essa consulta não existe... :(' });
+    }
 
-      if(quantidade == 0){
-        return res.status(500).json({msg: 'Essa consulta não existe... :('});
-      }
+    if (!data_hora) {
+      return res.status(400).json({ msg: "Parâmetros incorretos!" });
+    }
 
-      const j = await db.query("SELECT COUNT(*) from consulta where id != $1 and data_hora = $2", [id, data_hora]);  
-      const quant = Number(j.rows[0].count);
+    const consultaIdVet = await db.query("SELECT id_vet from consulta where id = $1", [id]);
+    const idVet = consultaIdVet.rows[0].id_vet;
 
-      if(quant != 0){
-        return res.status(500).json({msg: 'Já existe uma consulta marcada para esse dia/horário...:('});
-      }
+    const existeConsulta = await db.query("SELECT COUNT(*) from consulta where id_vet = $1 and data_hora = $2", [idVet, data_hora]);
+    const existeConsultaQtd = Number(existeConsulta.rows[0].count);
 
-      const r = await conexao.query("UPDATE CONSULTA SET data_hora = $1, valor = $2 WHERE id = $3 RETURNING *", [data_hora, valor, id]);
+    if (existeConsultaQtd != 0) {
+      return res.status(400).json({ msg: 'Já existe uma consulta marcada para esse dia/horário...:(' });
+    }
 
-      res.json(r.rows[0]);
+    const r = await db.query("UPDATE CONSULTA SET data_hora = $1, valor = $2 WHERE id = $3 RETURNING *", [data_hora, valor, id]);
 
-    });
-
-    return res.status(500).json({ msg: "Erro de operação" });
+    res.json(r.rows[0]);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
