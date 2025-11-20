@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 
 /**
  * @swagger
- * /cadastrarVet:
+ * /veterinario:
  *   post:
  *     summary: Cadastra um novo veterinário.
  *     description: Insere um novo veterinário no banco de dados.
@@ -72,7 +72,7 @@ router.post("/veterinario", async (req, res) => {
 
 /**
  * @swagger
- * /cadastrarTutor:
+ * /tutor:
  *   post:
  *     summary: Cadastra um novo tutor.
  *     description: Insere um novo tutor no banco de dados.
@@ -134,7 +134,7 @@ router.post("/tutor", async (req, res) => {
 
 /**
  * @swagger
- * /cadastrarPet:
+ * /pet:
  *   post:
  *     summary: Cadastra um novo pet.
  *     description: Adiciona um pet vinculado a um tutor existente.
@@ -186,7 +186,7 @@ router.post("/pet", async (req, res) => {
 
 /**
  * @swagger
- * /cadastrarConsulta:
+ * /consulta:
  *   post:
  *     summary: Cadastra uma nova consulta veterinária.
  *     description: Registra uma nova consulta entre um veterinário e um pet.
@@ -250,7 +250,7 @@ router.post("/consulta", async (req, res) => {
 
 /**
  * @swagger
- * /exibirVeterinarios:
+ * /veterinario:
  *   get:
  *     summary: Lista todos os veterinários.
  *     description: Retorna todos os veterinários cadastrados no banco de dados.
@@ -277,7 +277,7 @@ router.get("/veterinario", async (req, res) => {
 
 /**
  * @swagger
- * /exibirTutores:
+ * /tutor:
  *   get:
  *     summary: Lista todos os tutores.
  *     description: Retorna todos os tutores cadastrados no banco de dados.
@@ -303,7 +303,7 @@ router.get("/tutor", async (req, res) => {
 
 /**
  * @swagger
- * /exibirPets:
+ * /pet:
  *   get:
  *     summary: Lista todos os pets.
  *     description: Retorna todos os pets cadastrados no banco de dados.
@@ -330,7 +330,7 @@ router.get("/pet", async (req, res) => {
 
 /**
  * @swagger
- * /exibirConsultas:
+ * /consulta:
  *   get:
  *     summary: Lista todas as consultas.
  *     description: Retorna todas as consultas registradas com detalhes do veterinário, tutor e pet no banco de dados.
@@ -356,7 +356,7 @@ router.get("/consulta", async (req, res) => {
 
 /**
  * @swagger
- * /deletarVeterinario/{id}:
+ * /veterinario/{id}:
  *   delete:
  *     summary: Exclui um veterinário.
  *     description: Remove um veterinário e suas consultas associadas.
@@ -405,7 +405,7 @@ router.delete("/veterinario/:id", async (req, res) => {
 
 /**
  * @swagger
- * /deletarTutor/{id}:
+ * /tutor/{id}:
  *   delete:
  *     summary: Exclui um tutor.
  *     description: Remove o tutor, todos os pets e consultas associados a ele.
@@ -468,7 +468,7 @@ router.delete("/tutor/:id", async (req, res) => {
 
 /**
  * @swagger
- * /deletarPet/{id}:
+ * /pet/{id}:
  *   delete:
  *     summary: Exclui um pet.
  *     description: Remove o pet e suas consultas associadas.
@@ -517,7 +517,7 @@ router.delete("/pet/:id", async (req, res) => {
 
 /**
  * @swagger
- * /deletarConsulta/{id}:
+ * /consulta/{id}:
  *   delete:
  *     summary: Exclui uma consulta.
  *     description: Remove uma consulta específica.
@@ -558,7 +558,7 @@ router.delete("/consulta/:id", async (req, res) => {
 
 /**
  * @swagger
- * /atualizarVeterinario/{id}:
+ * /veterinario/{id}:
  *   put:
  *     summary: Atualiza um veterinário.
  *     description: Atualiza os dados de um veterinário existente.
@@ -631,7 +631,7 @@ router.put("/veterinario/:id", async (req, res) => {
 
 /**
  * @swagger
- * /atualizarTutor/{id}:
+ * /tutor/{id}:
  *   put:
  *     summary: Atualiza um tutor.
  *     description: Atualiza os dados de um tutor existente.
@@ -703,7 +703,7 @@ router.put("/tutor/:id", async (req, res) => {
 
 /**
  * @swagger
- * /atualizarPet/{id}:
+ * /pet/{id}:
  *   put:
  *     summary: Atualiza um pet.
  *     description: Atualiza o pet de um tutor existente.
@@ -762,7 +762,7 @@ router.put("/pet/:id", async (req, res) => {
 
 /**
  * @swagger
- * /atualizarConsulta/{id}:
+ * /consulta/{id}:
  *   put:
  *     summary: Atualiza uma consulta.
  *     description: Atualiza os dados de uma consulta existente.
